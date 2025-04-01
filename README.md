@@ -1,6 +1,6 @@
 # Document Intelligence Process
 
-A Streamlit application that allows users to upload documents, process them, and ask questions about their content using AI-powered document intelligence.
+A Streamlit application that allows users to upload documents, process them, and ask questions about their content using AI-powered document intelligence. The main tech used here are the RAG (Retrieval Augmented Generation) and LangChain + Ollama.
 
 ## Features
 
