@@ -1,0 +1,10 @@
+flask 
+langchain 
+huggingface_hub 
+faiss-cpu 
+PyPDF2 
+python-docx
+ipykernel
+langchain_community
+streamlit
+pypdf
