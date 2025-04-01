@@ -41,4 +41,4 @@ temp_output/
 .Spotlight-V100
 .Trashes
 ehthumbs.db
-Thumbs.db" > .gitignore
+Thumbs.db
