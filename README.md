@@ -1,14 +1,17 @@
-# Document Intelligence Process
+# Document Intelligence System
 
-A Streamlit application that allows users to upload documents, process them, and ask questions about their content using AI-powered document intelligence. The main tech used here are the RAG (Retrieval Augmented Generation) and LangChain + Ollama.
+A powerful document analysis and question-answering system built with Streamlit, LangChain, and Ollama. This application enables users to interact with their documents through natural language queries, leveraging advanced RAG (Retrieval Augmented Generation) technology.
 
 ## Features
 
-- Upload multiple document types (PDF, CSV, TXT, etc.)
-- Process documents using LangChain and Ollama
-- Interactive chat interface to ask questions about document content
-- Batch processing for multiple queries
-- Support for different LLM models via Ollama
+- 📄 Multi-format Document Support (PDF, CSV, TXT)
+- 💬 Interactive Chat Interface
+- 🔄 Batch Query Processing
+- 📊 Document Processing with Advanced RAG
+- 🚀 Optimized Retrieval System
+- 📥 Exportable Results in JSON Format
+- 🔄 Real-time Streaming Responses
+- 🎯 Context-aware Document Analysis
 
 ## Requirements
 
