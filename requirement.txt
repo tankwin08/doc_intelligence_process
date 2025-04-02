@@ -8,3 +8,4 @@ ipykernel
 langchain_community
 streamlit
 pypdf
+streamlit-navigation-bar
