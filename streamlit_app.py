@@ -63,6 +63,8 @@ def chat_with_documents(query, vector_store, stream=False):
     # Create a retrieval chain
     from langchain.chains import RetrievalQA
     from langchain.prompts import PromptTemplate
+    from langchain.retrievers import ContextualCompressionRetriever
+    from langchain.retrievers.document_compressors import LLMChainExtractor
     
     # Define a custom prompt template
     template = """
@@ -82,22 +84,44 @@ def chat_with_documents(query, vector_store, stream=False):
         input_variables=["context", "question"]
     )
     
-    # Create the retrieval QA chain with streaming parameter
+    # Create the base retriever
+    base_retriever = vector_store.as_retriever(search_kwargs={"k": 5})
+    
+    # Create compressor for contextual compression
+    compressor = LLMChainExtractor.from_llm(st.session_state.llm)
+    
+    # Create contextual compression retriever
+    compression_retriever = ContextualCompressionRetriever(
+        base_retriever=base_retriever,
+        base_compressor=compressor
+    )
+    
+    # Get relevant documents first
+    relevant_docs = compression_retriever.get_relevant_documents(query)
+    
+    # Create the retrieval QA chain
     qa_chain = RetrievalQA.from_chain_type(
         llm=st.session_state.llm,
         chain_type="stuff",
-        retriever=vector_store.as_retriever(search_kwargs={"k": 3}),
+        retriever=base_retriever,  # Use base retriever since we already have relevant docs
         return_source_documents=True,
-        chain_type_kwargs={"prompt": prompt}
+        chain_type_kwargs={
+            "prompt": prompt,
+            "document_prompt": PromptTemplate(
+                input_variables=["page_content"], 
+                template="{page_content}"
+            ),
+            "document_separator": "\n\n"
+        }
     )
     
-    # Execute the chain
-    result = qa_chain({"query": query})
+    # Execute the chain with the pre-retrieved documents
+    result = qa_chain({"query": query, "input_documents": relevant_docs})
     response = result["result"]
     
     # Handle deepseek model response
     if "deepseek" in st.session_state.llm.model and '</think>' in response:
-        response = response.split('</think>')[-1]
+        response = response.split('</think>')[-1].strip()
     
     return response
 
@@ -191,7 +215,7 @@ if st.session_state.current_page != "About":
                         # Write the uploaded file content to the temporary file
                         tmp.write(uploaded_file.getvalue())
                         temp_files.append(tmp.name)
-                
+                    
                 # Process the documents using your document processor function
                 st.session_state.document_store = process_documents(
                     temp_files, 
@@ -205,14 +229,48 @@ if st.session_state.current_page != "About":
                     
                 st.session_state.documents_processed = True
                 st.success("Documents processed successfully!")
+                
+                # Add download button for processed documents
+                if hasattr(st.session_state.document_store, 'docstore'):
+                    processed_docs = []
+                    for doc_id in st.session_state.document_store.docstore._dict:
+                        doc = st.session_state.document_store.docstore._dict[doc_id]
+                        processed_docs.append({
+                            "doc_id": doc_id,
+                            "filename": doc.metadata.get("source", "unknown"),
+                            "content": doc.page_content,
+                            "metadata": doc.metadata
+                        })
+                    
+                    docs_json = json.dumps(processed_docs, indent=2)
+                    st.download_button(
+                        label="Download Processed Documents",
+                        data=docs_json,
+                        file_name="processed_documents.json",
+                        mime="application/json",
+                        key="download_docs"
+                    )
+                    
             except Exception as e:
                 st.error(f"Error processing documents: {str(e)}")
 
 # Page content based on selection
 # In the Chat section, update the query handling:
+# In the Chat section
 if st.session_state.current_page == "Chat":
     # Chat section
     st.header("Chat with Documents")
+
+    # Add download button for chat history
+    if st.session_state.chat_history:
+        chat_history_json = json.dumps(st.session_state.chat_history, indent=2)
+        st.download_button(
+            label="Download Chat History",
+            data=chat_history_json,
+            file_name="chat_history.json",
+            mime="application/json",
+            key="download_chat"
+        )
 
     # Add streaming option before the query input
     stream = st.checkbox("Enable streaming response", value=True)
