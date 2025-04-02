@@ -60,11 +60,8 @@ def chat_with_documents(query, vector_store, stream=False):
     if vector_store is None:
         return "Please process documents first before asking questions."
     
-    # Create a retrieval chain
     from langchain.chains import RetrievalQA
     from langchain.prompts import PromptTemplate
-    from langchain.retrievers import ContextualCompressionRetriever
-    from langchain.retrievers.document_compressors import LLMChainExtractor
     
     # Define a custom prompt template
     template = """
@@ -76,6 +73,7 @@ def chat_with_documents(query, vector_store, stream=False):
     Question: {question}
     
     Please provide a detailed and accurate answer based only on the information in the documents.
+    If the information is not found in the documents, please say so.
     Answer:
     """
     
@@ -84,39 +82,30 @@ def chat_with_documents(query, vector_store, stream=False):
         input_variables=["context", "question"]
     )
     
-    # Create the base retriever
-    base_retriever = vector_store.as_retriever(search_kwargs={"k": 5})
-    
-    # Create compressor for contextual compression
-    compressor = LLMChainExtractor.from_llm(st.session_state.llm)
-    
-    # Create contextual compression retriever
-    compression_retriever = ContextualCompressionRetriever(
-        base_retriever=base_retriever,
-        base_compressor=compressor
+    # Create an optimized retriever with better search parameters
+    retriever = vector_store.as_retriever(
+        search_type="similarity_score_threshold",
+        search_kwargs={
+            "k": 3,
+            "score_threshold": 0.5,  # Only return relevant documents
+            "fetch_k": 5  # Fetch more candidates initially
+        }
     )
-    
-    # Get relevant documents first
-    relevant_docs = compression_retriever.get_relevant_documents(query)
     
     # Create the retrieval QA chain
     qa_chain = RetrievalQA.from_chain_type(
         llm=st.session_state.llm,
         chain_type="stuff",
-        retriever=base_retriever,  # Use base retriever since we already have relevant docs
+        retriever=retriever,
         return_source_documents=True,
         chain_type_kwargs={
             "prompt": prompt,
-            "document_prompt": PromptTemplate(
-                input_variables=["page_content"], 
-                template="{page_content}"
-            ),
             "document_separator": "\n\n"
         }
     )
     
-    # Execute the chain with the pre-retrieved documents
-    result = qa_chain({"query": query, "input_documents": relevant_docs})
+    # Execute the chain
+    result = qa_chain({"query": query})
     response = result["result"]
     
     # Handle deepseek model response
