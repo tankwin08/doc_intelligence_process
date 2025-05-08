@@ -5,7 +5,8 @@ faiss-cpu
 PyPDF2 
 python-docx
 ipykernel
-langchain_community
+langchain-community
 streamlit
 pypdf
 streamlit-navigation-bar
+python-dotenv
